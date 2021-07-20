@@ -72,6 +72,7 @@ class Settings(LoginRequiredMixin, View):
 
 class SaveProfileData(LoginRequiredMixin, View):
 	def post(self, request):
+		print("we saving")
 		user = request.user
 		form = EditProfileForm(request.POST, request.FILES)
 		if form.is_valid():
@@ -88,8 +89,11 @@ class SaveProfileData(LoginRequiredMixin, View):
 			user.country = data['country']
 			user.level = get_level_from_date_of_birth(data['date_of_birth'])
 			user.save()
+			messages.add_message(request, messages.SUCCESS,
+			                     '<i class="fas fa-check"></i> Profile Successfully Updated!')
+		else:
+			messages.add_message(request, messages.WARNING, str(form.errors))
 
-		messages.add_message(request, messages.SUCCESS, '<i class="fas fa-check"></i> Profile Successfully Updated!')
 		return redirect(reverse('settings'))
 
 

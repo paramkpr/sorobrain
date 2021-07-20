@@ -12,12 +12,6 @@ from workshops.models import Workshop
 
 
 def catalog(request):
-	empty_fields = user_profile_setup_progress(request.user)
-	if empty_fields > 0:
-		messages.add_message(request, messages.INFO,
-		                     f"Finish setting up your profile <a href={reverse('settings')}> here</a>. You have {empty_fields} fields to fill.")
-		return redirect(reverse('settings'))
-
 	return render(request, 'main/catalog.html', {
 		'competitions': Competition.objects.filter(active=True).order_by('-created_on'),
 		'workshops'   : Workshop.objects.filter(active=True).order_by('-created_on'),

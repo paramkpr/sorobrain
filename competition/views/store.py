@@ -82,7 +82,8 @@ class RegisterForFree(LoginRequiredMixin, View):
 		competition = get_object_or_404(Competition, slug=slug)
 		if not competition.sub_total < 1:
 			return HttpResponse(403)
-		grant_access_to_competition(request.user, competition)
+		if not competition.is_in_progress:
+			grant_access_to_competition(request.user, competition)
 		mail_managers(
 				'[eSorobrain.com] New Competition Registered',
 				f'{request.user.username}: {request.user.name} with email: {request.user.email} has bought competition: {competition.title} at {timezone.now()}.',
@@ -110,7 +111,8 @@ class RegisterWithCode(LoginRequiredMixin, View):
 			data = form.cleaned_data
 			code = get_object_or_404(CompetitionCode, code=data['code'])
 			if code.is_valid(competition):
-				grant_access_to_competition(request.user, competition)
+				if not competition.is_in_progress:
+					grant_access_to_competition(request.user, competition)
 				code.use()
 			else:
 				messages.add_message(request, messages.WARNING,
