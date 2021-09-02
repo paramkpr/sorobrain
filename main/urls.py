@@ -6,6 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from . import views
 from .views.actions.competition import grant_competition_access
 from .views.actions.invoice import view_invoice
+from .views.actions.main import export_users_csv
 from .views.actions.money import give_soromoney_view, RedeemReferralCode, update_incentive_view
 from .views.actions.quiz import grant_quiz_access
 from .views.actions.workshop import grant_workshop_access
@@ -24,6 +25,7 @@ urlpatterns = [
 	path('give_soromoney/', give_soromoney_view, name="give_soromoney"),
 	path('update_incentives/', update_incentive_view, name="update_incentive"),
 	path('view_invoice/<int:id>/', view_invoice, name="view_invoice"),
+	path('export_users', export_users_csv, name='export_users'),
 
 	path('referral/', RedeemReferralCode.as_view(), name="referral"),
 
@@ -47,6 +49,7 @@ urlpatterns = [
 
 	path('privacy/', TemplateView.as_view(template_name='main/privacy.html'), name='privacy'),
 	path('refund/', TemplateView.as_view(template_name='main/refund.html'), name='refund'),
+	path('terms/', TemplateView.as_view(template_name='main/terms.html'), name='terms'),
 	path('contact/', TemplateView.as_view(template_name='main/contact.html'), name='contact'),
 	path('global/', TemplateView.as_view(template_name='main/global.html'), name='global'),
 	path('reviews/', TemplateView.as_view(template_name='main/reviews.html'), name='reviews'),

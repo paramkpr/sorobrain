@@ -60,6 +60,7 @@
 							<ul>
 								<li>Score: {{ qs.score|floatformat }} </li>
 								<li>Correct / Incorrect: {{ qs.correct_answers }}/{{ qs.incorrect_answers }}</li>
+                <li>Correct / Total: {{ qs.correct_answers }}/{{ qs.quiz.number_of_questions }}</li>
 								<li>Time Taken: {{ qs.attempt_time_human }} minutes</li>
 							</ul>
 						</div>

@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.views import View
 
 from competition.forms import SendCertificatesForm
-from competition.models.competition import Competition
+from competition.models.competition import Competition, CompetitionCertificate
 from competition.views.utils import send_certificate
 from main.models import User
 
@@ -57,7 +57,9 @@ class Certificate(View):
 	def get(request, slug, username):
 		c = get_object_or_404(Competition, slug=slug)
 		user = get_object_or_404(User, username=username)
+		certificate = get_object_or_404(CompetitionCertificate, slug=slug)
 		return render(request, 'competition/compete/certificate.html', {
+			'certificate': certificate,
 			'competition': c,
 			'user': user
 		})

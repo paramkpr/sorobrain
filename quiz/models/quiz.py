@@ -63,6 +63,10 @@ class Quiz(PaidObjectMixin):
 		return Question.objects.filter(quiz=self.id)
 
 	@property
+	def number_of_questions(self):
+		return len(self.questions)
+
+	@property
 	def question_id_list(self):
 		return [question.id for question in self.questions]
 

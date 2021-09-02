@@ -151,6 +151,7 @@ class CompetitionCertificate(models.Model):
 	competition = models.ForeignKey(Competition, on_delete=models.CASCADE)
 	user = models.ForeignKey(User, on_delete=models.CASCADE)
 	certificate = models.ImageField(upload_to='competition/certificates/')
+	disabled = models.BooleanField(default=False)
 
 	class Meta:
 		unique_together = ('user', 'competition')

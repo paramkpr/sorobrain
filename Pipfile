@@ -92,6 +92,7 @@ weasyprint = "*"
 redis = "*"
 celery = "*"
 django-jazzmin = "*"
+razorpay = "*"
 
 [requires]
 python_version = "3.8"

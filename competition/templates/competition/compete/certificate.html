@@ -13,6 +13,15 @@
 				<hr>
 				<div class="row">
 					<div class="col-md-12 text-center">
+            {% if certificate.disabled %}
+            <h4 class="text-success"><i class="fas fa-multiply"></i>  Unverified Certificate: </h4>
+                          <ul style="list-style-type: none">
+              <li>This certificate was given to: <b>{{ user.name }}</b></li>
+              <li>For the competition: <b>{{ competition.title }}</b></li>
+              <li>On <b>{{ competition.end_date }}</b></li>
+            </ul>
+            <h5>This certificate was revoked from the student and is now unverified. </h5>
+            {% else %}
             <h4 class="text-success"><i class="fas fa-check"></i>  Verified Certificate: </h4>
             <ul style="list-style-type: none">
               <li>This certificate was given to: <b>{{ user.name }}</b></li>
@@ -20,6 +29,7 @@
               <li>On <b>{{ competition.end_date }}</b></li>
             </ul>
             <p>Please check that the details given above match with the student's certificate. </p>
+            {% endif %}
 					</div>
 				</div>
 				<div class="row">

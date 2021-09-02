@@ -70,7 +70,7 @@ admin.site.register(Competition, CompetitionAdmin)
 class CompetitionAccessAdmin(admin.ModelAdmin):
 	list_display = ('user', 'competition', 'created_on')
 	search_fields = ('user', 'competition')
-	list_filter = ('active',)
+	list_filter = ('active', 'competition', 'user__level')
 
 
 admin.site.register(CompetitionAccess, CompetitionAccessAdmin)

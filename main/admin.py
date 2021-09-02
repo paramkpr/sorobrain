@@ -56,6 +56,13 @@ def manage_soromoney(modeladmin, request, queryset):
 	return redirect(reverse('give_soromoney'))
 
 
+def export_to_excel(modeladmin, request, queryset):
+	usernames = [user.username for user in queryset]
+	string_usernames = "".join([u + ", " for u in usernames])
+	request.session['_usernames'] = string_usernames
+	return redirect(reverse('export_users'))
+
+
 class UserAdmin(BaseUserAdmin):
 	form = UpdateUserForm
 	add_form = AddUserForm
@@ -84,7 +91,7 @@ class UserAdmin(BaseUserAdmin):
 	filter_horizontal = ('user_permissions', 'groups')
 	readonly_fields = ('points',)
 	actions = [get_user_emails, get_user_phone, give_users_competition_access, give_users_quiz_access,
-	           give_users_workshop_access, manage_soromoney]
+	           give_users_workshop_access, manage_soromoney, export_to_excel]
 
 
 admin.site.register(User, UserAdmin)

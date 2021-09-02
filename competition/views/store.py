@@ -59,7 +59,7 @@ class CompetitionPaymentSuccess(LoginRequiredMixin, View):
 	@staticmethod
 	def post(request, slug):
 		competition = get_object_or_404(Competition, slug=slug)
-		if competition.is_payment_valid(request):
+		if competition.is_payment_valid(request, request.POST.get('razorpay_order_id'),  request.POST.get('razorpay_payment_id'), request.POST.get('razorpay_signature')):
 			grant_access_to_competition(request.user, competition)
 		mail_managers(
 				'[eSorobrain.com] New Competition Registered',

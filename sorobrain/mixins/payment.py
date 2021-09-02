@@ -2,12 +2,14 @@ import hashlib
 import os
 from uuid import uuid4
 
+import razorpay
 from django.contrib import messages
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
+from razorpay.errors import SignatureVerificationError
 
 from main.models.code import DiscountCode
 
@@ -48,12 +50,12 @@ class PaidObjectMixin(models.Model):
 		if not request.user.is_authenticated:
 			messages.add_message(request, messages.WARNING,
 			                     "You need to login before you can buy something!")
-			return redirect(login_url)
+			JsonResponse({'status': 'Error', 'redirect': login_url})
 
 		if request.user.profile_setup_progress() > 0:
 			messages.add_message(request, messages.WARNING,
 			                     "You need to complete your profile first!")
-			return redirect(reverse('settings'))
+			JsonResponse({'status': 'Error', 'redirect': reverse('settings')})
 
 		if code != '':
 			if not code.is_used and not code.is_expired:
@@ -62,31 +64,17 @@ class PaidObjectMixin(models.Model):
 					if self.id == code.object_id:
 						amount = amount * ((100 - code.discount) / 100)
 
-		product_info = self.title if not self.title == '' else 'no-product-info'
+		client = razorpay.Client(auth=(os.environ.get('RAZORPAY_KEY'), os.environ.get('RAZORPAY_SECRET_KEY')))
+		client.set_app_details({"title": "Django", "version": os.environ.get('APP_VERSION')})
 
-		data = {
-			'merchant_key': os.environ.get('PAYU_MERCHANT_KEY'),
-			'txn_id'      : str(uuid4().hex),
-			'amount'      : int(amount),
-			'product_info': product_info,
-			'first_name'  : request.user.name.split(' ', 1)[0],
-			'email_id'    : request.user.email,
-			'phone_number': str(request.user.phone),
-			'udf1'        : code.code if code != '' else '',
-			'udf2'        : udf2,
-			'surl'        : success_url,
-			'furl'        : failure_url
-		}
+		amount = amount
+		notes = {'udf2': udf2, 'code': code}
 
-		# key|txnid|amount|productinfo|firstname|email|udf1|udf2|||||||||salt;
-		s = f"{data['merchant_key']}|{data['txn_id']}|{data['amount']}|{data['product_info']}|{data['first_name']}|{data['email_id']}|{data['udf1']}|{data['udf2']}|||||||||{os.environ.get('PAYU_MERCHANT_SALT')}"
+		return JsonResponse(client.order.create(dict(amount=int(amount) * 100, currency='INR', notes=notes)))
 
-		data['hash'] = str(hashlib.sha512(s.encode('utf-8')).hexdigest())
-
-		return JsonResponse(data)
 
 	@staticmethod
-	def is_payment_valid(request):
+	def is_payment_valid(request, rzp_order_id, rzp_payment_id, rzp_signature):
 		"""
 		This method validates the payment by checking the hash sent from
 		payu against a hash that it creates itself.
@@ -94,17 +82,18 @@ class PaidObjectMixin(models.Model):
 		:return: Returns a redirect if invalid hash, and a true if valid
 		"""
 
-		# salt|status|||||||||udf2|udf1|email|firstname|productinfo|amount|txnid|key
-		s = f"{os.environ.get('PAYU_MERCHANT_SALT')}|{request.POST['status']}|||||||||{request.POST['udf2']}|{request.POST['udf1']}|{request.POST['email']}|{request.POST['firstname']}|{request.POST['productinfo']}|{request.POST['amount']}|{request.POST['txnid']}|{request.POST['key']}"
-		hash_text = s
+		client = razorpay.Client(auth=(os.environ.get('RAZORPAY_KEY_ID'), os.environ.get('RAZORPAY_KEY_SECRET')))
+		params = {
+			'razorpay_order_id'  : rzp_order_id,  # request.POST.get('razorpay_order_id'),
+			'razorpay_payment_id': rzp_payment_id,  # request.POST.get('razorpay_payment_id'),
+			'razorpay_signature' : rzp_signature,  # request.POST.get('razorpay_signature')
+		}
+		try:
+			client.utility.verify_payment_signature(params)
+		except SignatureVerificationError:
+			return JsonResponse({'status': True, 'redirect': reverse('payment_error')})
 
-		if request.POST['hash'] != str(
-				hashlib.sha512(hash_text.encode('utf-8')).hexdigest()):
-			messages.add_message(request, messages.WARNING,
-			                     "Err: 23; Invalid Hash")
-			return redirect(reverse('payment_error'))
-
-		code = request.POST['udf1']
+		code = client.notes.get('code')
 		if code != '':
 			DiscountCode.objects.get(code=code).use()
 
