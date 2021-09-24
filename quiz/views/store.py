@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.mail import mail_managers
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
@@ -45,7 +46,7 @@ class BuyQuiz(View):
 						code=request.POST['code'])
 			except DiscountCode.DoesNotExist:
 				messages.add_message(request, messages.WARNING, 'That discount code is not valid')
-				return redirect(quiz.get_absolute_url())
+				return JsonResponse({'status': False, 'redirect': reverse('index')})
 		else:
 			discount_code = ''
 		return quiz.pay(request, amount=quiz.sub_total,
@@ -60,7 +61,7 @@ class QuizPaymentSuccess(LoginRequiredMixin, View):
 	@staticmethod
 	def post(request, slug):
 		quiz = get_object_or_404(Quiz, slug=slug)
-		if quiz.is_payment_valid(request):
+		if quiz.is_payment_valid(request, request.POST.get('razorpay_order_id'),  request.POST.get('razorpay_payment_id'), request.POST.get('razorpay_signature')):
 			grant_access_to_quiz(request.user, quiz)
 		mail_managers(
 				'[eSorobrain.com] New Quiz Registered',
@@ -78,7 +79,7 @@ class QuizPaymentSuccess(LoginRequiredMixin, View):
 		invoice.save()
 		send_product_bought_mail('[Sorobrain] New Quiz Registered',
 		                         msg, msg_html, to=[request.user.email])
-		return redirect(quiz.get_absolute_url())
+		return JsonResponse({'status': True, 'redirect': quiz.get_absolute_url()})
 
 
 class RegisterWithCode(LoginRequiredMixin, View):

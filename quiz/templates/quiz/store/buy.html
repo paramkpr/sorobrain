@@ -209,61 +209,79 @@
     </div>
   </div>
 
-  <script id="bolt" src="https://checkout-static.citruspay.com/bolt/run/bolt.min.js"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script>
+
       $('#buy').click(function () {
 
-          console.log('Works?');
-
-          {% if user.is_authenticated %}
-
-              $.ajax({
-                  type: 'POST',
-                  url: '{{ quiz.get_absolute_url }}',
-                  data: {
-                      'code': $('#code').val(),
-                      'csrfmiddlewaretoken': '{{ csrf_token }}'
-                  },
-                  success: function (data, status) {
-                      let RequestData = {
-                          key: data.merchant_key,
-                          txnid: data.txn_id,
-                          hash: data.hash,
-                          amount: parseFloat(data.amount),
-                          firstname: data.first_name,
-                          email: data.email_id,
-                          phone: data.phone_number,
-                          productinfo: data.product_info,
-                          surl: data.surl,
-                          furl: data.furl,
-                          udf1: data.udf1,
-                          udf2: data.udf2,
-                          mode: 'dropout',
-                      };
-                      /* console.log(RequestData);
-                      console.log(typeof RequestData.amount); */
-
-                      let Handler = {
-                          responseHandler: function (BOLT) {
-                              console.log(BOLT.response.txnStatus);
-                          },
-                          catchException: function (BOLT) {
-                              alert(BOLT.message);
-                          },
-                      };
-
-                      bolt.launch(RequestData, Handler);
-                  },
-                  dataType: 'json',
-              });
-
-          {% else %}
-
-              location.href = "{% url 'account_login' %}";
-
-          {% endif %}
-
+          $.ajax({
+              type: 'POST',
+              url: '{% url 'quiz:buy' quiz.slug %}',
+              data: {
+                  'csrfmiddlewaretoken': '{{ csrf_token }}',
+                  'code': $('#code').val()
+              },
+              success: function (data, status) {
+                  if (data.status === 'Error') {
+                      window.location.href = data.redirect;
+                  }
+                  console.log(data);
+                  let options = {
+                      "key": "rzp_live_G5sHflLihpTBy9",
+                      "amount": data.amount, // Amount is in currency subunits. 50000 refers to 50000 paise
+                      "currency": data.currency,
+                      "name": "Sorobrain",
+                      "description": "{{ competition.title }}",
+                      "image": "https://i.imgur.com/BAI8yx6.png",
+                      "order_id": data.id,
+                      "handler": function (response) {
+                          // Collect response from razorpay and redirect to checkout success
+                          $.ajax({
+                              type: 'POST',
+                              url: '{% url 'quiz:success' quiz.slug %}',
+                              data: {
+                                  'csrfmiddlewaretoken': '{{ csrf_token }}',
+                                  'razorpay_payment_id': response.razorpay_payment_id,
+                                  'razorpay_order_id': response.razorpay_order_id,
+                                  'razorpay_signature': response.razorpay_signature
+                              },
+                              success: function (data, status) {
+                                  if (data.status === true) {
+                                      window.location.href = data.redirect;
+                                  }
+                              }
+                          })
+                      },
+                      "prefill": {
+                          "name": "{{ request.user.name }}",
+                          "email": "{{ request.user.email }}",
+                          "contact": "{{ request.user.phone }}"
+                      },
+                      "notes": {
+                          "address": "Sorobrain, Central Park 1, DLF Phase 4, Gurgaon 122002"
+                      },
+                      "theme": {
+                          "color": "#58C1D7"
+                      }
+                  };
+                  let rzp1 = new Razorpay(options);
+                  rzp1.on('payment.failed', function (response) {
+                      $.ajax({
+                          type: 'POST',
+                          url: '{% url 'payment_error' %}',
+                          data: JSON.stringify({
+                              'error_log': response.error,
+                          }),
+                          success: function (data, status) {
+                              if (data.status === true) {
+                                  window.location.href = data.redirect;
+                              }
+                          }
+                      })
+                  });
+                  rzp1.open();
+              },
+          });
       });
   </script>
-
 {% endblock %}

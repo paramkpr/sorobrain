@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.mail import mail_managers
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -46,7 +46,7 @@ class BuyCompetition(View):
 				discount_code = DiscountCode.objects.get(code=request.POST['code'])
 			except DiscountCode.DoesNotExist:
 				messages.add_message(request, messages.WARNING, 'That discount code is not valid')
-				return redirect(competition.get_absolute_url())
+				return JsonResponse({'status': False, 'redirect': reverse('index')})
 		else:
 			discount_code = ''
 		return competition.pay(request, amount=competition.sub_total,
@@ -73,7 +73,7 @@ class CompetitionPaymentSuccess(LoginRequiredMixin, View):
 		invoice.invoice_html = msg_html
 		invoice.save()
 		send_product_bought_mail('[Sorobrain] New Competition Registered', msg, msg_html, to=[request.user.email])
-		return redirect(competition.get_absolute_url())
+		return JsonResponse({'status': True, 'redirect': competition.get_compete_url()})
 
 
 class RegisterForFree(LoginRequiredMixin, View):

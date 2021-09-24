@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -46,7 +46,7 @@ class WorkshopStore(View):
 						code=request.POST['code'])
 			except DiscountCode.DoesNotExist:
 				messages.add_message(request, messages.WARNING, 'That discount code is not valid')
-				return redirect(w.get_absolute_url())
+				return JsonResponse({'status': False, 'redirect': reverse('index')})
 		else:
 			discount_code = ''
 
@@ -62,14 +62,13 @@ class WorkshopSuccess(LoginRequiredMixin, View):
 	@staticmethod
 	def post(request, slug):
 		w = get_object_or_404(Workshop, slug=slug)
-		if w.is_payment_valid(request):
+		if w.is_payment_valid(request, request.POST.get('razorpay_order_id'),  request.POST.get('razorpay_payment_id'), request.POST.get('razorpay_signature')):
 			grant_access_to_workshop(request.user, w)
 		mail_managers(
 				'[eSorobrain.com] New Workshop Registered',
 				f'{request.user.username}: {request.user.name} with email: {request.user.email} has bought workshop: {w.title} at {timezone.now()}.',
 				fail_silently=True
 		)
-
 		invoice = Invoice(user=request.user, description=f"Workshop bought - {w.title}", amount=w.sub_total)
 		invoice.save()
 		msg = render_to_string('mails/txt/product_bought.txt', {'user': request.user, 'content_type': 'workshop', 'product': w})
@@ -77,8 +76,7 @@ class WorkshopSuccess(LoginRequiredMixin, View):
 		invoice.invoice_html = msg_html
 		invoice.save()
 		send_product_bought_mail('[Sorobrain] New Workshop Registered', msg, msg_html, to=[request.user.email])
-
-		return redirect(reverse('workshops:workshop_store', args=[slug]))
+		return JsonResponse({'status': True, 'redirect': reverse('workshops:workshop_store', args=[slug])})
 
 
 class HasAccessWorkshop(LoginRequiredMixin, View):

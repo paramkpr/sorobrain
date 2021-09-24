@@ -70,7 +70,9 @@ class PaidObjectMixin(models.Model):
 		amount = amount
 		notes = {'udf2': udf2, 'code': code}
 
-		return JsonResponse(client.order.create(dict(amount=int(amount) * 100, currency='INR', notes=notes)))
+		response = JsonResponse(client.order.create(dict(amount=int(amount) * 100, currency='INR', notes=notes)))
+		print(response)
+		return response
 
 
 	@staticmethod
